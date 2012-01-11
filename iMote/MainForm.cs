@@ -1,23 +1,4 @@
-﻿/*
- * iMote
- * Copyright (C) 2010-2011 Scott Thomas <scott_t@users.sourceforge.net>
- * 
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- * 
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- */
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -40,6 +21,8 @@ namespace iMote
     List<Song> playlist = new List<Song>();
     List<Song> musicDB = null;
     Song currSong = null;
+    Song nextSong = null;
+    Song nextNext = null;
 
     bool firstSongList = true;
 
@@ -202,6 +185,8 @@ namespace iMote
           }
 
           currSong = null;
+          nextSong = null;
+          nextNext = null;
 
           if (songNum < playlist.Count - 2)
           {
@@ -262,7 +247,7 @@ namespace iMote
       // Try to merge...
       if (playlist.Count == 0)
       {
-        //PopulateArt(ref songs, 0);
+//        PopulateArt(ref songs, 0);
         playlist = songs;
         for (int j = 0; j < playlist.Count; ++j)
         {
@@ -329,13 +314,13 @@ namespace iMote
 
       for (int i = start; i < list.Count; ++i)
       {
-        System.IO.Stream imgStream = tunes.GetItemArt(list[i].trackID, artBox.Width, artBox.Height);
+        /*System.IO.Stream imgStream = tunes.GetItemArt(list[i].trackId, artBox.Width, artBox.Height);
         if (imgStream != null)
           list[i].art = new Bitmap(imgStream);
         else
         {
           list[i].art = new Bitmap(Properties.Resources.coverart, artBox.Width, artBox.Height);
-        }
+        }*/
       }
     }
 
@@ -344,7 +329,7 @@ namespace iMote
       if (song.art == null)
       {
         // Attempt retrieval
-        System.IO.Stream ioStream = tunes.GetItemArt(song.trackID, artBox.Width, artBox.Height);
+        System.IO.Stream ioStream = tunes.GetItemArt(ref song, artBox.Width, artBox.Height);
         if (ioStream != null && ioStream.Length > 0)
         {
           song.art = new Bitmap(ioStream);
@@ -365,14 +350,14 @@ namespace iMote
 
       currSong = playlist[num];
 
-      Song s = playlist[num + 1];
+      Song s = nextSong = playlist[num + 1];
       lblTrackNext.Text = s.trackName;
       lblArtistNext.Text = s.trackArtist;
       lblAlbumNext.Text = s.trackAlbum;
       lblLenNext.Text = string.Format("{0}:{1:D2}", s.trackLength.Minutes, s.trackLength.Seconds);
       artNext.Image = GetItemArt(ref s, artNext.Size);
 
-      s = playlist[num + 2];
+      s = nextNext = playlist[num + 2];
       lblTrackNextNext.Text = s.trackName;
       lblArtistNextNext.Text = s.trackArtist;
       lblAlbumNextNext.Text = s.trackAlbum;
@@ -458,6 +443,36 @@ namespace iMote
               t.Rows.Add(r);
             }
             AllMusicSource.DataSource = t;
+          }
+          break;
+
+        case MsgType.MSG_GET_ART:
+          // Go thru current and the two meta thingies to see if the id's match... if so, we have art!
+          int id = (int)msg.data["item"];
+          System.IO.Stream stream = (System.IO.Stream)msg.data["art"];
+          if (stream != null)
+          {
+            try
+            {
+              if (id == currSong.trackID)
+              {
+                currSong.art = new Bitmap(stream);
+                artBox.Image = currSong.art;
+              }
+              else if (id == nextSong.trackID)
+              {
+                nextSong.art = new Bitmap(stream);
+                artNext.Image = nextSong.art;
+              }
+              else if (id == nextNext.trackID)
+              {
+                nextNext.art = new Bitmap(stream);
+                artNextNext.Image = nextNext.art;
+              }
+            }
+            catch (Exception e)
+            {
+            }
           }
           break;
 

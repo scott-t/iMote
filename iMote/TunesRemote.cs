@@ -1,23 +1,4 @@
-﻿/*
- * iMote
- * Copyright (C) 2010-2011 Scott Thomas <scott_t@users.sourceforge.net>
- * 
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
- */
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -150,6 +131,10 @@ namespace iMote
 
             case MsgType.MSG_PLAYPAUSE:
               threadPlayPause();
+              break;
+
+            case MsgType.MSG_GET_ART:
+              msg["art"] = threadGetArt(msg);
               break;
 
             default:
@@ -323,10 +308,62 @@ namespace iMote
       GetDAAP("ctrl-int/1/setproperty?dmcp.volume=" + data["vol"] + ".000000");
     }
 
-    public System.IO.Stream GetItemArt(int item, int w, int h)
+    private System.IO.Stream threadGetArt(TunesMsg data)
+    {
+      try
+      {
+        int cnt = 0;
+        while (true)
+        {
+          cnt++;
+          System.Net.WebRequest req = System.Net.HttpWebRequest.Create(URL + "databases/" + dbID + "/items/" + data["item"] + "/extra_data/artwork?mw=" + data["w"] + "&mh=" + data["h"] + "&revision-number=" + revId + "&session-id=" + SessID);
+          req.Headers.Add("Viewer-Only-Client", "1");
+          req.Headers.Add("Accept-Encoding", "gzip, deflate");
+
+          System.Net.WebResponse resp = req.GetResponse();
+          System.IO.Stream st;
+          if (resp.Headers["Content-encoding"] == "gzip")
+            st = new System.IO.Compression.GZipStream(resp.GetResponseStream(), System.IO.Compression.CompressionMode.Decompress);
+          else if (resp.Headers["Content-encoding"] == "deflate")
+            st = new System.IO.Compression.DeflateStream(resp.GetResponseStream(), System.IO.Compression.CompressionMode.Decompress);
+          else
+            st = resp.GetResponseStream();
+
+          byte[] b = new byte[resp.ContentLength];
+          int len = st.Read(b, 0, b.Length);
+          Array.Resize<byte>(ref b, len);
+
+          System.IO.MemoryStream stream = new System.IO.MemoryStream();
+          stream.Write(b, 0, b.Length);
+
+          if (len > 0 && len < 50)
+          {
+            if (cnt > 2)
+              return null;
+
+            DAAP.ContentNode n = DAAP.ContentParser.Parse(bag, b);
+
+            revId = (int)n.GetChild("dmap.serverrevision").Value;
+            continue;
+          }
+
+          if (b.Length > 0)
+            return stream;
+          else
+            return null;
+        }
+      }
+      catch (Exception e)
+      {
+        return null;
+      }
+    }
+
+    public System.IO.Stream GetItemArt(ref Song song, int w, int h)
     {
       TunesMsg data = new TunesMsg(MsgType.MSG_GET_ART);
-      data["item"] = item;
+      data["song"] = song;
+      data["item"] = song.trackID;
       data["w"] = w;
       data["h"] = h;
       lock (msgQueue)
@@ -506,6 +543,12 @@ namespace iMote
         // already paired, and have a GUID floating around
       }
 
+       /*
+      ZeroconfService.NetServiceBrowser br = new ZeroconfService.NetServiceBrowser();
+      br.AllowMultithreadedCallbacks = true;
+      br.DidFindService += new ZeroconfService.NetServiceBrowser.ServiceFound(br_DidFindService);
+      br.SearchForService("_daap._tcp", ""); // \o/
+      */
   
       // Create service to advertise our control abilities
       Random rdmPort = new Random();
