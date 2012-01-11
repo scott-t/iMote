@@ -484,6 +484,7 @@
       // 
       // cmbPlaylist
       // 
+      this.cmbPlaylist.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
       this.cmbPlaylist.FormattingEnabled = true;
       this.cmbPlaylist.Location = new System.Drawing.Point(564, 9);
       this.cmbPlaylist.Name = "cmbPlaylist";

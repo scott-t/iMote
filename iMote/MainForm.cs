@@ -206,7 +206,7 @@ namespace iMote
           if (songNum < playlist.Count - 2)
           {
             SetMeta(songNum);
-            artBox.Image = new Bitmap(playlist[songNum].art, artBox.Size);
+            artBox.Image = (playlist[songNum].art != null ? new Bitmap(playlist[songNum].art, artBox.Size) : null);
           }
 
           if ((songNum > playlist.Count - 5 && playlist.Count > 8) || playlist.Count < 8)
@@ -339,6 +339,25 @@ namespace iMote
       }
     }
 
+    private Bitmap GetItemArt(ref Song song, Size size)
+    {
+      if (song.art == null)
+      {
+        // Attempt retrieval
+        System.IO.Stream ioStream = tunes.GetItemArt(song.trackID, artBox.Width, artBox.Height);
+        if (ioStream != null && ioStream.Length > 0)
+        {
+          song.art = new Bitmap(ioStream);
+        }
+        else
+        {
+          song.art = Properties.Resources.coverart;
+        }
+      }
+
+      return (song.art == null ? null : new Bitmap(song.art, size));
+    }
+
     private void SetMeta(int num)
     {
       if (num >= playlist.Count - 2)
@@ -351,14 +370,14 @@ namespace iMote
       lblArtistNext.Text = s.trackArtist;
       lblAlbumNext.Text = s.trackAlbum;
       lblLenNext.Text = string.Format("{0}:{1:D2}", s.trackLength.Minutes, s.trackLength.Seconds);
-      artNext.Image = new Bitmap(s.art, artNext.Size);
+      artNext.Image = GetItemArt(ref s, artNext.Size);
 
       s = playlist[num + 2];
       lblTrackNextNext.Text = s.trackName;
       lblArtistNextNext.Text = s.trackArtist;
       lblAlbumNextNext.Text = s.trackAlbum;
       lblLenNextNext.Text = string.Format("{0}:{1:D2}", s.trackLength.Minutes, s.trackLength.Seconds);
-      artNextNext.Image = new Bitmap(s.art, artNext.Size);
+      artNextNext.Image = GetItemArt(ref s, artNext.Size);
     }
 
     private void TabChange(object sender, EventArgs e)

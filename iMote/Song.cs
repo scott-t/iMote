@@ -35,7 +35,7 @@ namespace iMote
     public TimeSpan trackPos = new TimeSpan();
     public TimeSpan trackLength;
 
-    public System.Drawing.Bitmap art = Properties.Resources.coverart;
+    public System.Drawing.Bitmap art = null;// = Properties.Resources.coverart;
 
     public string Name
     {
