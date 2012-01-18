@@ -241,7 +241,7 @@ namespace iMote
       if (!playlistMutex.WaitOne(5))
         return;
 
-      if (songs == null)
+      if (songs == null || songs.Count == 0)
         return;
 
       // Try to merge...
@@ -462,18 +462,23 @@ namespace iMote
               else if (id == nextSong.trackID)
               {
                 nextSong.art = new Bitmap(stream);
-                artNext.Image = nextSong.art;
+                artNext.Image = new Bitmap(nextSong.art, artNext.Size);
               }
               else if (id == nextNext.trackID)
               {
                 nextNext.art = new Bitmap(stream);
-                artNextNext.Image = nextNext.art;
+                artNextNext.Image = new Bitmap(nextNext.art, artNextNext.Size);
               }
             }
             catch (Exception e)
             {
             }
           }
+          break;
+
+        case MsgType.MSG_NO_SERVER:
+          // Lost connection ?
+          System.Diagnostics.Debug.WriteLine("Main thread - system.net.exception: " + msg.data["msg"].ToString());
           break;
 
         default:

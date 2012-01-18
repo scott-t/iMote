@@ -15,6 +15,7 @@ namespace iMote
     MSG_SKIP_PREV,
     MSG_GET_ART,
     MSG_GET_PLAYLIST,
+    MSG_NO_SERVER,
   }
 
   class TunesMsg
@@ -147,6 +148,13 @@ namespace iMote
       catch (System.Threading.ThreadAbortException ex)
       {
         // Thread ending
+      }
+      catch (System.Net.WebException ex)
+      {
+        // Server ran away
+        TunesMsg evt = new TunesMsg(MsgType.MSG_NO_SERVER);
+        evt.data["msg"] = ex.Message;
+        parent.TunesHandleEvent(evt);
       }
     }
     
